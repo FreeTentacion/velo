@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+import tourguide.ModeEnum.Mode;
+
 /**
  * @author pbj
  */
@@ -34,24 +36,49 @@ public class ControllerImp implements Controller {
     @Override
     public Status startNewTour(String id, String title, Annotation annotation) {
         logger.fine(startBanner("startNewTour"));
+        
+        if ( !ModeEnum.isBrowse() ) {
+            return new Status.Error("Current Mode is Invalid to Start New Tour.");
+        }
+        
+        ModeEnum.setMode(Mode.CREATE);
+        
         return new Status.Error("unimplemented");
     }
 
     @Override
     public Status addWaypoint(Annotation annotation) {
         logger.fine(startBanner("addWaypoint"));
+        
+        if ( !ModeEnum.isCreate() ) {
+            return new Status.Error("Current Mode is Invalid for Adding Waypoint.");
+        }
+        
         return new Status.Error("unimplemented");
     }
 
     @Override
     public Status addLeg(Annotation annotation) {
         logger.fine(startBanner("addLeg"));
+        
+        if ( !ModeEnum.isCreate() ) {
+            return new Status.Error("Current Mode is Invaild for Adding Leg");
+        }
+                
         return new Status.Error("unimplemented");
     }
 
     @Override
     public Status endNewTour() {
         logger.fine(startBanner("endNewTour"));
+        
+        
+        if ( !ModeEnum.isCreate() ) {
+            return new Status.Error("Current Mode is Invalid for Ending Tour");
+        }
+        
+        ModeEnum.setMode(Mode.BROWSE);
+        
         return new Status.Error("unimplemented");
     }
 
@@ -61,11 +88,18 @@ public class ControllerImp implements Controller {
 
     @Override
     public Status showTourDetails(String tourID) {
+        if ( !ModeEnum.isBrowse() ) {
+            return new Status.Error("Current Mode is Invalid for Showing Tour Details");
+        }        
+        
         return new Status.Error("unimplemented");
     }
   
     @Override
     public Status showToursOverview() {
+        if ( !ModeEnum.isBrowse() ) {
+            return new Status.Error("Current Mode is Invalid for Showing Tours Overview");
+        }
         return new Status.Error("unimplemented");
     }
 
@@ -75,11 +109,21 @@ public class ControllerImp implements Controller {
     
     @Override
     public Status followTour(String id) {
+        if ( !ModeEnum.isBrowse() ) {
+            return new Status.Error("Current Mode is Invalid to Start Following tour");
+        }
+        
+        ModeEnum.setMode(Mode.FOLLOW);
+        
         return new Status.Error("unimplemented");
     }
 
     @Override
     public Status endSelectedTour() {
+        if ( !ModeEnum.isFollow() ) {
+            return new Status.Error("Current Mode is Invalid to End Tour");
+        }
+        
         return new Status.Error("unimplemented");
     }
 
