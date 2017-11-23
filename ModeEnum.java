@@ -4,7 +4,7 @@ public class ModeEnum {
     
     public enum Mode { BROWSE, FOLLOW, CREATE; }
     
-    private static Mode name;
+    private static Mode name = Mode.BROWSE;
     
     public static Mode getMode() {
         return name;
