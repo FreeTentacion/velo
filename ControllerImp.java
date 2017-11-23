@@ -16,11 +16,12 @@ public class ControllerImp implements Controller {
     private static Logger logger = Logger.getLogger("tourguide");
     private static final String LS = System.lineSeparator();
     
-    private Mode mode;
-    public Location currentLocation;
+    private Location currentLocation;
     private int currentStep;
     private boolean browseDetails;
     private String browseDetailsTourId;
+    private Tour t;
+    private ArrayList<Waypoint> waypoints;
 
     private String startBanner(String messageName) {
         return  LS 
@@ -46,8 +47,9 @@ public class ControllerImp implements Controller {
         if ( !ModeEnum.isBrowse() ) {
             return new Status.Error("Current Mode is Invalid to Start New Tour.");
         }
-        
         ModeEnum.setMode(Mode.CREATE);
+
+        currentStep = 0;
         
         return new Status.Error("unimplemented");
     }
@@ -96,7 +98,8 @@ public class ControllerImp implements Controller {
     public Status showTourDetails(String tourID) {
         if ( !ModeEnum.isBrowse() ) {
             return new Status.Error("Current Mode is Invalid for Showing Tour Details");
-        }        
+        }
+        
         
         return new Status.Error("unimplemented");
     }
@@ -138,6 +141,7 @@ public class ControllerImp implements Controller {
     //--------------------------
     @Override
     public void setLocation(double easting, double northing) {
+        currentLocation = new Location(easting,northing);
     }
 
     @Override

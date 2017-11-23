@@ -4,7 +4,11 @@ public class Waypoint {
     
     private Annotation annotation;
     
-    public boolean isNear(Location location) {
+    public Waypoint(Annotation annotation, Location location) {
+        this.annotation = annotation;
+    }
+    
+    public boolean near(Location location) {
         
     }
 }
