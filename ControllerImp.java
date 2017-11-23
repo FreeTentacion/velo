@@ -15,6 +15,12 @@ import tourguide.ModeEnum.Mode;
 public class ControllerImp implements Controller {
     private static Logger logger = Logger.getLogger("tourguide");
     private static final String LS = System.lineSeparator();
+    
+    private Mode mode;
+    public Location currentLocation;
+    private int currentStep;
+    private boolean browseDetails;
+    private String browseDetailsTourId;
 
     private String startBanner(String messageName) {
         return  LS 
