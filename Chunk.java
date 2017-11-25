@@ -33,7 +33,7 @@ public class Chunk {
         
         public OverviewLine(String id, String title) {
             this.id = id;
-            this.title = title;   
+            this.title = title;
         }
         
         public String toString() {

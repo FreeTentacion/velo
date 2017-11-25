@@ -28,6 +28,7 @@ public class ControllerImp implements Controller {
     private double waypointSeparation;
     private int legcounter = 0;
     private boolean lastinstructioncreatewaypoint = false;
+    private ArrayList<Tour> tours;
 
     private String startBanner(String messageName) {
         return  LS 
@@ -70,6 +71,7 @@ public class ControllerImp implements Controller {
         currentStage = 0;
         
         addLeg(annotation); // adds the first leg, with the annotation directing the user to the starting location
+        // wrong, code so a leg must be added first
         currentStage++;
         return Status.OK;
     }
@@ -128,8 +130,6 @@ public class ControllerImp implements Controller {
         
         currentStage++; // now on two
         legcounter++; // legcounter on one
-        
-        // does there need to be code so that a new leg can only be added after a new waypoint?
         lastinstructioncreatewaypoint = false;
         return Status.OK;
     }
@@ -146,7 +146,7 @@ public class ControllerImp implements Controller {
         if (lastinstructioncreatewaypoint) {
             ModeEnum.setMode(Mode.BROWSE); // does this fulfill this "the app should return to the overview sub-mode of the browse mode."
             // output chunk containing title, number of legs, number of waypoints (added so far)
-            Chunk c = new Chunk().new CreateHeader(t.getTitle(), legcounter, currentStage -1 ); // error here? Constructor for chunk?
+            Chunk.CreateHeader c = new Chunk.CreateHeader(t.getTitle(), legcounter, currentStage -1 );
             c.toString(); // outputs the chunk, lord knows why peanut butter jelly called these chunks
             return Status.OK;
         }
@@ -161,19 +161,42 @@ public class ControllerImp implements Controller {
 
     @Override
     public Status showTourDetails(String tourID) {
+        logger.fine(startBanner("showTourDetails"));
         if ( !ModeEnum.isBrowse() ) {
             return new Status.Error("Current Mode is Invalid for Showing Tour Details");
-        }        
+        }
         
-        return new Status.Error("unimplemented");
+        // Not using the library class
+        
+        
+        
+        for (int i = 0; i < tours.size(); i++) {
+            if (tours.get(i).getId() == tourID) {
+                Chunk.OverviewLine found = new Chunk.OverviewLine(tourID, tours.get(i).getTitle());
+                found.toString();
+                return Status.OK;
+            }
+        }
+        
+        
+        return new Status.Error("No tour corresponding to the inputted tourID");
     }
   
     @Override
     public Status showToursOverview() {
+        logger.fine(startBanner("showToursOverview"));
         if ( !ModeEnum.isBrowse() ) {
             return new Status.Error("Current Mode is Invalid for Showing Tours Overview");
         }
-        return new Status.Error("unimplemented");
+        
+        Chunk.BrowseOverview returnthis = new Chunk.BrowseOverview();
+        for (int i = 0 ; i < tours.size(); i++) {
+            returnthis.addIdAndTitle(tours.get(i).getId(), tours.get(i).getTitle()); //adds each tour to the arraylist
+        }
+        
+        returnthis.toString(); // prints the arraylist out
+        
+        return Status.OK;
     }
 
     //--------------------------
@@ -185,6 +208,8 @@ public class ControllerImp implements Controller {
         if ( !ModeEnum.isBrowse() ) {
             return new Status.Error("Current Mode is Invalid to Start Following tour");
         }
+        
+        // where are we calling all of the data from if it were to exist?
         
         ModeEnum.setMode(Mode.FOLLOW);
         
