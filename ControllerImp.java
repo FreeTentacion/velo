@@ -23,9 +23,10 @@ public class ControllerImp implements Controller {
     private Waypoint currentWaypoint;
     private double waypointRadius;
     private double waypointSeparation;
-    private int legcounter = 0;
+    private int legCounter = 0;
+    private int waypointCounter = 0;
     private boolean prevAdditionWasWayp = false;
-    private ArrayList<Tour> tours;
+    private ArrayList<Tour> tours = new ArrayList<Tour>();
     private boolean isLeg = true;
     private Mode mode = Mode.BROWSE;
 
@@ -71,14 +72,15 @@ public class ControllerImp implements Controller {
         if ( mode != Mode.CREATE ) {
             return new Status.Error("Current Mode is Invalid for Adding Waypoint.");
         }
-        
-        if (currentStage == 0) {
-            return new Status.Error("Must add a leg first");
+        if (legCounter != currentStage) {
+            t.addLeg(Annotation.DEFAULT);
+            currentStage++;
+            legCounter++;
         }
-        
         if (currentStage == 1) { // doesn't need to check if it's too close to the previous waypoint, because the previous waypoint doesn't exist.
             t.addWaypoint(currentLocation, annotation); 
             prevAdditionWasWayp = true;
+            waypointCounter++;
             return Status.OK;
         }
         // the following if statements checks two waypoints aren't being added at the same stage
@@ -87,7 +89,7 @@ public class ControllerImp implements Controller {
         }
         // the following code checks that the user is outside of the previous waypoint radius before creating a new one 
         
-        currentWaypoint = t.getWaypoints().get(currentStage); 
+        currentWaypoint = t.getWaypoints().get(currentStage - 3); //
         
         Location l = currentWaypoint.getLocation();
         double wapnorth = l.getnorthing();
@@ -103,6 +105,7 @@ public class ControllerImp implements Controller {
             
             
         }
+        waypointCounter++;
         prevAdditionWasWayp = true;
         return Status.OK;
     }
@@ -114,14 +117,12 @@ public class ControllerImp implements Controller {
         if ( mode != Mode.CREATE ) {
             return new Status.Error("Current Mode is Invaild for Adding Leg");
         }
-        if (legcounter>=currentStage) {
-            return new Status.Error("There is already a leg for the respective waypoint");
-        }
         
+      
         t.addLeg(annotation);
         
         currentStage++;
-        legcounter++;
+        legCounter++;
         prevAdditionWasWayp = false;
         return Status.OK;
     }
