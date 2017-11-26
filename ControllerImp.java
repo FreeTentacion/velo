@@ -24,7 +24,7 @@ public class ControllerImp implements Controller {
     private Tour t;
     private Waypoint currentWaypoint;
     private ArrayList<Waypoint> waypoints;
-    private double waypointradius;
+    private double waypointRadius;
     private double waypointSeparation;
     private int legcounter = 0;
     private boolean lastinstructioncreatewaypoint = false;
@@ -38,7 +38,7 @@ public class ControllerImp implements Controller {
     }
     
     public ControllerImp(double waypointRadius, double waypointSeparation) { // What's the difference between these two again?
-        this.waypointradius = waypointRadius;
+        this.waypointRadius = waypointRadius;
         this.waypointSeparation = waypointSeparation;
     }
     
@@ -46,10 +46,7 @@ public class ControllerImp implements Controller {
         return currentLocation;
     }
     
-    // Not sure if this is needed
-    public ArrayList<Waypoint> getWaypoints() { 
-        return waypoints;
-    }
+    
     //--------------------------
     // Create tour mode
     //--------------------------
@@ -69,10 +66,6 @@ public class ControllerImp implements Controller {
         
         t  = new Tour(id, title, annotation);
         currentStage = 0;
-        
-        addLeg(annotation); // adds the first leg, with the annotation directing the user to the starting location
-        // wrong, code so a leg must be added first
-        currentStage++;
         return Status.OK;
     }
 
@@ -84,6 +77,10 @@ public class ControllerImp implements Controller {
             return new Status.Error("Current Mode is Invalid for Adding Waypoint.");
         }
         
+        if (currentStage == 0) {
+            return new Status.Error("Must add a leg first");
+        }
+        
         if (currentStage == 1) { // doesn't need to check if it's too close to the previous waypoint, because the previous waypoint doesn't exist.
             t.addWaypoint(currentLocation, annotation); // the add waypoint method in tour needs to update the array list in this class
             lastinstructioncreatewaypoint = true;
@@ -91,7 +88,7 @@ public class ControllerImp implements Controller {
         }
         // the following if statements checks two waypoints aren't being added at the same stage
         if (waypoints.size() == currentStage) {
-            return new Status.Error("Already have a waypoint for this stage");  // again assuming this then cuts the method off here          
+            return new Status.Error("Already have a waypoint for this stage");         
         }
         // the following code checks that the user is outside of the previous waypoint radius before creating a new one 
         
@@ -128,8 +125,8 @@ public class ControllerImp implements Controller {
         
         t.addLeg(annotation);
         
-        currentStage++; // now on two
-        legcounter++; // legcounter on one
+        currentStage++;
+        legcounter++;
         lastinstructioncreatewaypoint = false;
         return Status.OK;
     }
@@ -144,10 +141,10 @@ public class ControllerImp implements Controller {
         }
         
         if (lastinstructioncreatewaypoint) {
-            ModeEnum.setMode(Mode.BROWSE); // does this fulfill this "the app should return to the overview sub-mode of the browse mode."
             // output chunk containing title, number of legs, number of waypoints (added so far)
             Chunk.CreateHeader c = new Chunk.CreateHeader(t.getTitle(), legcounter, currentStage -1 );
-            c.toString(); // outputs the chunk, lord knows why peanut butter jelly called these chunks
+            c.toString(); // outputs the chunk
+            ModeEnum.setMode(Mode.BROWSE); 
             return Status.OK;
         }
         else {
@@ -209,11 +206,45 @@ public class ControllerImp implements Controller {
             return new Status.Error("Current Mode is Invalid to Start Following tour");
         }
         
-        // where are we calling all of the data from if it were to exist?
-        
         ModeEnum.setMode(Mode.FOLLOW);
         
-        return new Status.Error("unimplemented");
+        // where are we calling all of the data from if it were to exist?
+        
+        //for loop for each waypoint, leg combination
+        //hardcode final waypoint
+        // possibly calls "end selected tour" << not this
+        
+        
+        for (int i = 0 ; i < tours.size(); i++) {
+            if (id == tours.get(i).getId()) {
+                t = tours.get(i);
+            }
+            else {
+                return new Status.Error("There is no tour for this id");
+            }
+        }
+        
+        Chunk.FollowLeg zeroLeg  = new Chunk.FollowLeg(t.getLeg(0).getAnnotation());
+        zeroLeg.toString(); // hardcoding the first leg
+        
+        // at what point do you get a message for the next leg
+        
+        for (int i = 1; i < t.getWaypoints().size(); i++) {
+            //if within next waypoint radius then continue, otherwise take one off the counter?? 
+            if (currentLocation.deltaFrom(t.getWaypoint(i).getLocation()).distance() > waypointRadius) {
+                // something that holds until the user is within the next waypoint radius.
+            }
+            Chunk.FollowWaypoint curWayp = new Chunk.FollowWaypoint(t.getWaypoint(i).getannotation());
+            curWayp.toString();
+            Chunk.FollowLeg curLeg  = new Chunk.FollowLeg(t.getLeg(i).getAnnotation());
+            curLeg.toString(); // what to do with these strings once we get them here
+        }
+        
+        Chunk.FollowWaypoint finalWayp = new Chunk.FollowWaypoint(t.getWaypoint(t.getWaypoints().size()).getannotation());
+        finalWayp.toString();
+        
+        
+        return Status.OK;
     }
 
     @Override
@@ -221,6 +252,8 @@ public class ControllerImp implements Controller {
         if ( !ModeEnum.isFollow() ) {
             return new Status.Error("Current Mode is Invalid to End Tour");
         }
+        
+        
         
         return new Status.Error("unimplemented");
     }

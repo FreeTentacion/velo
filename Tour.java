@@ -7,8 +7,8 @@ public class Tour {
     private String id;
     private String title;
     private Annotation annotation; // this is the longer description of the tour
-    private  ArrayList<Waypoint> waypoints;
-    // an arraylist of waypoints?
+    private ArrayList<Waypoint> waypoints;
+    private ArrayList<Leg> legs;
     
     public Tour(String id, String title, Annotation annotation) {
         this.id = id;
@@ -30,14 +30,15 @@ public class Tour {
         return waypoints;
     }
     
-    public void addWaypoint(Location location, Annotation annotation) {
-        Waypoint n = (annotation, location); // how do you define a waypoint with the given parameters 
+    public void addWaypoint(Location location, Annotation annotation) { // add a waypoint in order to the waypoints arraylist
+        Waypoint addthis = new Waypoint(annotation, location); 
         int i = waypoints.size();
-        waypoints.add(i, n);
+        waypoints.add(i, addthis);
     }
     
-    public void addLeg(Annotation annotation) {
-        
+    public void addLeg(Annotation annotation) { // add a leg in order to the legs ArrayList
+        Leg addthis = new Leg(annotation);
+        legs.add(addthis);
     }
     public Waypoint getWaypoint(int step) {
         

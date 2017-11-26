@@ -2,7 +2,7 @@ package tourguide;
 
 import java.util.ArrayList;
 
-public static class Library {
+public class Library {
     
     public ArrayList<Tour> tours;
     
@@ -18,5 +18,5 @@ public static class Library {
         return tours;
     }
     
-    
+//---- NOT USING THIS CLASS --------------------------------------------------------------------------------------------
 }
