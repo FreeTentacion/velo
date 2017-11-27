@@ -43,7 +43,7 @@ public class Tour {
         legs.add(leg);
     }
     public Waypoint getWaypoint(int stage) {
-        return waypoints.get(stage - 1);
+        return waypoints.get(stage);
     }
     public Leg getLeg(int stage) {
         return legs.get(stage);

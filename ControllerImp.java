@@ -18,18 +18,17 @@ public class ControllerImp implements Controller {
     
     private Location currentLocation;
     private int currentStage;
+    private int followStage = 0;
     private boolean browseDetails;
     private Tour tour;
     private Tour selectedTour;
     private Waypoint currentWaypoint;
     private double waypointRadius;
     private double waypointSeparation;
-    private int legCounter = 0;
-    private int waypointCounter = 0;
     private boolean prevAdditionWasWayp = false;
     private ArrayList<Tour> tours = new ArrayList<Tour>();
-    private boolean isLeg = true;
     private Mode mode = Mode.BROWSE;
+    int x = 0;
 
     private String startBanner(String messageName) {
         return  LS 
@@ -76,12 +75,10 @@ public class ControllerImp implements Controller {
         if (currentStage == 0 || currentStage == tour.getWaypoints().size()) {
             tour.addLeg(Annotation.DEFAULT);
             currentStage++;
-            legCounter++;
         }
         if (currentStage == 1) { // doesn't need to check if it's too close to the previous waypoint, because the previous waypoint doesn't exist.
             tour.addWaypoint(currentLocation, annotation); 
             prevAdditionWasWayp = true;
-            waypointCounter++;
             return Status.OK;
         }
         // the following if statements checks two waypoints aren't being added at the same stage
@@ -93,10 +90,10 @@ public class ControllerImp implements Controller {
         currentWaypoint = tour.getWaypoints().get(currentStage - 2); //
         
         Location l = currentWaypoint.getLocation();
-        double wapnorth = l.getnorthing();
-        double wapeast = l.geteasting();
-        double cureast = currentLocation.geteasting();
-        double curnorth = currentLocation.getnorthing();
+        double wapnorth = l.getNorthing();
+        double wapeast = l.getEasting();
+        double cureast = currentLocation.getEasting();
+        double curnorth = currentLocation.getNorthing();
         double separationDistance = Math.sqrt(((wapnorth-curnorth)*(wapnorth-curnorth))+((wapeast-cureast)*(wapeast-cureast)));
         if (separationDistance < waypointSeparation ) {
             return new Status.Error("Too close to insert a new Waypoint."); 
@@ -106,7 +103,6 @@ public class ControllerImp implements Controller {
             
             
         }
-        waypointCounter++;
         prevAdditionWasWayp = true;
         return Status.OK;
     }
@@ -123,7 +119,6 @@ public class ControllerImp implements Controller {
         tour.addLeg(annotation);
         
         currentStage++;
-        legCounter++;
         prevAdditionWasWayp = false;
         return Status.OK;
     }
@@ -184,21 +179,11 @@ public class ControllerImp implements Controller {
     public Status followTour(String id) {
         logger.fine(startBanner("followTour"));
         if ( mode != Mode.BROWSE ) {        
-            Chunk.FollowWaypoint finalWayp = new Chunk.FollowWaypoint(tour.getWaypoint(tour.getWaypoints().size()).getannotation());
-            finalWayp.toString();
-            
-            
             return new Status.Error("Current Mode is Invalid to Start Following tour");
         }
         
         mode = Mode.FOLLOW;
-        currentStage = 1;
-        
-        // where are we calling all of the data from if it were to exist?
-        
-        //for loop for each waypoint, leg combination
-        //hardcode final waypoint
-        // possibly calls "end selected tour" << not this
+        currentStage = 0;
         
         boolean ifFound = false;
         for (int i = 0 ; i < tours.size(); i++) {
@@ -210,23 +195,6 @@ public class ControllerImp implements Controller {
         if (!ifFound) {
             return new Status.Error("There is no tour for this id");
         }
-        // at what point do you get a message for the next leg
-        
-        for (int i = 0; i < tour.getWaypoints().size() + tour.getLegs().size(); i++) {
-            //if within next waypoint radius then continue, otherwise take one off the counter?? 
-            if (i % 2 != 0 || i == 0) {
-                isLeg = true;
-            }
-            else if (currentLocation.deltaFrom(tour.getWaypoint(i/2).getLocation()).distance() <= waypointRadius) {
-                isLeg = false;
-            }
-            // currentStage++;
-           
-                
-                //while (currentLocation.deltaFrom(tour.getWaypoint(i).getLocation()).distance() < waypointRadius) {}
-                // do nothing
-            
-        }
         return Status.OK;
     }
 
@@ -236,7 +204,7 @@ public class ControllerImp implements Controller {
         if ( mode != Mode.FOLLOW ) {
             return new Status.Error("Current Mode is Invalid to End Tour");
         }
-        
+        followStage = 0;
         mode = Mode.BROWSE;
         browseDetails = false;
         return Status.OK;
@@ -258,18 +226,45 @@ public class ControllerImp implements Controller {
             output.add(createOut);
         }
         else if (mode == Mode.FOLLOW) {
-            Chunk.FollowHeader followOut = new Chunk.FollowHeader(tour.getTitle(), currentStage, tour.getWaypoints().size());
-            
-            if (isLeg) { // change current stage here
-                Chunk.FollowLeg curLeg  = new Chunk.FollowLeg(tour.getLeg(currentStage).getAnnotation());
+            boolean isWithinRadius = currentLocation.deltaFrom(tour.getWaypoint(followStage).getLocation()).distance() <= waypointRadius;
+            if (tour.getWaypoints().size() == followStage + 1 && isWithinRadius) {
+                Chunk.FollowHeader lastWaypHeader = new Chunk.FollowHeader(tour.getTitle(), followStage + 1, tour.getWaypoints().size());
+                output.add(lastWaypHeader);
+                Chunk.FollowWaypoint finalWayp = new Chunk.FollowWaypoint(tour.getWaypoint(followStage).getannotation());
+                output.add(finalWayp);
+            }
+            else if (isWithinRadius) { 
+                if (tour.getWaypoints().size() == followStage + 1) {
+                    
+                }
+                double bearing = tour.getWaypoint(followStage + 1).getLocation().deltaFrom(currentLocation).bearing();
+                double distance = tour.getWaypoint(followStage + 1).getLocation().deltaFrom(currentLocation).distance();
+                Chunk.FollowHeader followOut = new Chunk.FollowHeader(tour.getTitle(), followStage + 1, tour.getWaypoints().size());
+                output.add(followOut);
+                Chunk.FollowWaypoint curWayp = new Chunk.FollowWaypoint(tour.getWaypoint(followStage).getannotation());
+                output.add(curWayp);
+                Chunk.FollowLeg curLeg  = new Chunk.FollowLeg(tour.getLeg(followStage + 1).getAnnotation());
                 output.add(curLeg);
-                Chunk.FollowBearing bearingNextWayp = new Chunk.FollowBearing(currentLocation.deltaFrom(tour.getWaypoint(currentStage).getLocation()).bearing(), distance);
+                Chunk.FollowBearing bearingNextWayp = new Chunk.FollowBearing(bearing, distance);
+                output.add(bearingNextWayp);
+                if (x == 3) {
+                    followStage++;
+                    x = 0;
+                }
+                else {
+                    x++;
+                }
             }
             else {
-                Chunk.FollowWaypoint curWayp = new Chunk.FollowWaypoint(tour.getWaypoint(currentStage).getannotation());
-                output.add(curWayp);
+                double bearing = tour.getWaypoint(followStage).getLocation().deltaFrom(currentLocation).bearing();
+                double distance = tour.getWaypoint(followStage).getLocation().deltaFrom(currentLocation).distance();
+                Chunk.FollowHeader followOut = new Chunk.FollowHeader(tour.getTitle(), followStage, tour.getWaypoints().size());
+                output.add(followOut);
+                Chunk.FollowLeg curLeg  = new Chunk.FollowLeg(tour.getLeg(followStage).getAnnotation());
+                output.add(curLeg);
+                Chunk.FollowBearing bearingNextWayp = new Chunk.FollowBearing(bearing, distance);
+                output.add(bearingNextWayp);
             }
-            output.add(followOut);
         }
         else if (mode == Mode.BROWSE) {
             if (browseDetails) {

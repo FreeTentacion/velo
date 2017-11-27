@@ -10,17 +10,17 @@ public class Location {
                 this.northing = northing;      
             }
     
-    public Displacement deltaFrom(Location waypointLocation) { // returns displacement from the next waypoint.
-        Displacement d = new Displacement(this.easting - waypointLocation.easting, 
-                                          this.northing - waypointLocation.northing);
+    public Displacement deltaFrom(Location currentLocation) { // returns displacement from the next waypoint.
+        Displacement d = new Displacement(this.easting - currentLocation.easting, 
+                                          this.northing - currentLocation.northing);
         return d;
     }
     
-    public double geteasting() {
+    public double getEasting() {
         return easting;
     }
     
-    public double getnorthing() {
+    public double getNorthing() {
         return northing;
     }
 }
