@@ -19,7 +19,8 @@ public class ControllerImp implements Controller {
     private Location currentLocation;
     private int currentStage;
     private boolean browseDetails;
-    private Tour t;
+    private Tour tour;
+    private Tour selectedTour;
     private Waypoint currentWaypoint;
     private double waypointRadius;
     private double waypointSeparation;
@@ -59,8 +60,8 @@ public class ControllerImp implements Controller {
         
         mode = Mode.CREATE;
         
-        t  = new Tour(id, title, annotation);
-        tours.add(t);
+        tour  = new Tour(id, title, annotation);
+        tours.add(tour);
         currentStage = 0;
         return Status.OK;
     }
@@ -72,24 +73,24 @@ public class ControllerImp implements Controller {
         if ( mode != Mode.CREATE ) {
             return new Status.Error("Current Mode is Invalid for Adding Waypoint.");
         }
-        if (legCounter != currentStage) {
-            t.addLeg(Annotation.DEFAULT);
+        if (currentStage == 0 || currentStage == tour.getWaypoints().size()) {
+            tour.addLeg(Annotation.DEFAULT);
             currentStage++;
             legCounter++;
         }
         if (currentStage == 1) { // doesn't need to check if it's too close to the previous waypoint, because the previous waypoint doesn't exist.
-            t.addWaypoint(currentLocation, annotation); 
+            tour.addWaypoint(currentLocation, annotation); 
             prevAdditionWasWayp = true;
             waypointCounter++;
             return Status.OK;
         }
         // the following if statements checks two waypoints aren't being added at the same stage
-        if (t.getWaypoints().size() == currentStage) {
+        if (tour.getWaypoints().size() == currentStage) {
             return new Status.Error("Already have a waypoint for this stage");         
         }
         // the following code checks that the user is outside of the previous waypoint radius before creating a new one 
         
-        currentWaypoint = t.getWaypoints().get(currentStage - 3); //
+        currentWaypoint = tour.getWaypoints().get(currentStage - 2); //
         
         Location l = currentWaypoint.getLocation();
         double wapnorth = l.getnorthing();
@@ -101,7 +102,7 @@ public class ControllerImp implements Controller {
             return new Status.Error("Too close to insert a new Waypoint."); 
         }
         else {
-            t.addWaypoint(currentLocation, annotation);
+            tour.addWaypoint(currentLocation, annotation);
             
             
         }
@@ -119,7 +120,7 @@ public class ControllerImp implements Controller {
         }
         
       
-        t.addLeg(annotation);
+        tour.addLeg(annotation);
         
         currentStage++;
         legCounter++;
@@ -158,6 +159,7 @@ public class ControllerImp implements Controller {
         for (int i = 0; i < tours.size(); i++) {
             if (tours.get(i).getId() == tourID) {
                 browseDetails = true;
+                selectedTour = tours.get(i);
                 return Status.OK;
             }
         }
@@ -182,7 +184,7 @@ public class ControllerImp implements Controller {
     public Status followTour(String id) {
         logger.fine(startBanner("followTour"));
         if ( mode != Mode.BROWSE ) {        
-            Chunk.FollowWaypoint finalWayp = new Chunk.FollowWaypoint(t.getWaypoint(t.getWaypoints().size()).getannotation());
+            Chunk.FollowWaypoint finalWayp = new Chunk.FollowWaypoint(tour.getWaypoint(tour.getWaypoints().size()).getannotation());
             finalWayp.toString();
             
             
@@ -190,6 +192,7 @@ public class ControllerImp implements Controller {
         }
         
         mode = Mode.FOLLOW;
+        currentStage = 1;
         
         // where are we calling all of the data from if it were to exist?
         
@@ -197,29 +200,32 @@ public class ControllerImp implements Controller {
         //hardcode final waypoint
         // possibly calls "end selected tour" << not this
         
-        
+        boolean ifFound = false;
         for (int i = 0 ; i < tours.size(); i++) {
             if (id == tours.get(i).getId()) {
-                t = tours.get(i);
-            }
-            else {
-                return new Status.Error("There is no tour for this id");
+                tour = tours.get(i);
+                ifFound = true;
             }
         }
-        
+        if (!ifFound) {
+            return new Status.Error("There is no tour for this id");
+        }
         // at what point do you get a message for the next leg
         
-        for (int i = 1; i < t.getWaypoints().size(); i++) {
+        for (int i = 0; i < tour.getWaypoints().size() + tour.getLegs().size(); i++) {
             //if within next waypoint radius then continue, otherwise take one off the counter?? 
-            while (currentLocation.deltaFrom(t.getWaypoint(i).getLocation()).distance() > waypointRadius) {
-                // do nothing
+            if (i % 2 != 0 || i == 0) {
+                isLeg = true;
             }
-            isLeg = false;
+            else if (currentLocation.deltaFrom(tour.getWaypoint(i/2).getLocation()).distance() <= waypointRadius) {
+                isLeg = false;
+            }
+            // currentStage++;
+           
+                
+                //while (currentLocation.deltaFrom(tour.getWaypoint(i).getLocation()).distance() < waypointRadius) {}
+                // do nothing
             
-            while (currentLocation.deltaFrom(t.getWaypoint(i).getLocation()).distance() < waypointRadius) {
-                // do nothing
-            }
-            isLeg = true;
         }
         return Status.OK;
     }
@@ -248,25 +254,26 @@ public class ControllerImp implements Controller {
     public List<Chunk> getOutput() {
         ArrayList<Chunk> output = new ArrayList<Chunk>();
         if (mode == Mode.CREATE) {
-            Chunk.CreateHeader createOut = new Chunk.CreateHeader(t.getTitle(), t.getLegs().size(), t.getWaypoints().size());
+            Chunk.CreateHeader createOut = new Chunk.CreateHeader(tour.getTitle(), tour.getLegs().size(), tour.getWaypoints().size());
             output.add(createOut);
         }
         else if (mode == Mode.FOLLOW) {
-            Chunk.FollowHeader followOut = new Chunk.FollowHeader(t.getTitle(), currentStage, t.getWaypoints().size());
+            Chunk.FollowHeader followOut = new Chunk.FollowHeader(tour.getTitle(), currentStage, tour.getWaypoints().size());
             
-            if (isLeg) {
-                Chunk.FollowLeg curLeg  = new Chunk.FollowLeg(t.getLeg(currentStage).getAnnotation());
+            if (isLeg) { // change current stage here
+                Chunk.FollowLeg curLeg  = new Chunk.FollowLeg(tour.getLeg(currentStage).getAnnotation());
                 output.add(curLeg);
+                Chunk.FollowBearing bearingNextWayp = new Chunk.FollowBearing(currentLocation.deltaFrom(tour.getWaypoint(currentStage).getLocation()).bearing(), distance);
             }
             else {
-                Chunk.FollowWaypoint curWayp = new Chunk.FollowWaypoint(t.getWaypoint(currentStage).getannotation());
+                Chunk.FollowWaypoint curWayp = new Chunk.FollowWaypoint(tour.getWaypoint(currentStage).getannotation());
                 output.add(curWayp);
             }
             output.add(followOut);
         }
         else if (mode == Mode.BROWSE) {
             if (browseDetails) {
-                Chunk.BrowseDetails detailsOut = new Chunk.BrowseDetails(t.getId(), t.getTitle(), t.getAnnotation());
+                Chunk.BrowseDetails detailsOut = new Chunk.BrowseDetails(selectedTour.getId(), selectedTour.getTitle(), selectedTour.getAnnotation());
                 output.add(detailsOut);
             }
             else {
